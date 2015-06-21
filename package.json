@@ -1,0 +1,31 @@
+{
+  "name": "process-reporter",
+  "version": "1.0.0",
+  "description": "process reporter",
+  "main": "index.js",
+  "author": "Russ Frank <me@russfrank.us>",
+  "license": "MIT",
+  "dependencies": {
+    "process": "^0.11.1",
+    "toobusy": "^0.2.4"
+  },
+  "devDependencies": {
+    "format-stack": "^4.1.1",
+    "istanbul": "^0.3.15",
+    "leaked-handles": "^5.2.0",
+    "opn": "^2.0.1",
+    "tape": "^4.0.0",
+    "uber-standard": "^3.7.1"
+  },
+  "scripts": {
+    "check-cover": "istanbul check-coverage || echo coverage failed",
+    "check-ls": "npm ls --loglevel=http --parseable 1>/dev/null && echo '# npm is in a good state'",
+    "cover": "npm run test-cover -s && npm run check-cover -s",
+    "lint": "standard -v --reporter stylish && echo '# linter passed'",
+    "test": "npm run check-ls -s && npm run lint -s && npm run cover",
+    "test-repeat": "NODE_DEBUG=autobahn node test/index.js | FORCE_COLOR=1 tap-spec; while [ $? -eq 0 ]; do NODE_DEBUG=autobahn node test/index.js | FORCE_COLOR=1 tap-spec; done;",
+    "test-cover": "istanbul cover test.js",
+    "view-cover": "opn ./coverage/index.html",
+    "travis": "npm run cover -s && istanbul report lcov && ((cat coverage/lcov.info | coveralls) || exit 0)"
+  }
+}
