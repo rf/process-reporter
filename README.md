@@ -20,3 +20,5 @@ It currently reports these stats:
 * **yourapp.process-reporter.memory-usage.heap-total** total size of v8 heap
 * **yourapp.process-reporter.memory-usage.heap-used** amt of v8 heap used
 * **yourapp.process-reporter.lag-sampler** event loop lag
+
+To destroy the reporter just call `processReporter.destroy();`
