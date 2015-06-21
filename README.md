@@ -10,7 +10,7 @@ var processReporter = ProcessReporter({
 });
 
 processReporter.bootstrap();
-``
+```
 
 It currently reports these stats:
 
