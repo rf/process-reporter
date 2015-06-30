@@ -7,6 +7,7 @@ var assert = require('assert');
 
 module.exports = ProcessReporter;
 
+/*eslint max-statements: [1, 30]*/
 function ProcessReporter(options) {
     if (!(this instanceof ProcessReporter)) {
         return new ProcessReporter(options);
@@ -15,21 +16,57 @@ function ProcessReporter(options) {
     var self = this;
 
     assert(typeof options === 'object', 'options required');
-    assert(typeof options.statsd === 'object', 'options.statsd required');
-
-    self.handleInterval = options.handleInterval || 1000;
-    self.requestInterval = options.requestInterval || 100;
-    self.memoryInterval = options.memoryInterval || 1000;
-    self.lagInterval = options.lagInterval || 500;
 
     self.statsd = options.statsd;
+    assert(typeof self.statsd === 'object', 'options.statsd required');
+
+    self.handleInterval = options.handleInterval || 1000;
+    assert(
+        typeof self.handleInterval === 'number',
+        'expected options.handleInterval to be number'
+    );
+
+    self.requestInterval = options.requestInterval || 100;
+    assert(
+        typeof self.requestInterval === 'number',
+        'expected options.requestInterval to be number'
+    );
+
+    self.memoryInterval = options.memoryInterval || 1000;
+    assert(
+        typeof self.memoryInterval === 'number',
+        'expected options.memoryInterval to be number'
+    );
+
+    self.lagInterval = options.lagInterval || 500;
+    assert(
+        typeof self.lagInterval === 'number',
+        'expected options.lagInterval to be number'
+    );
+
+    self.timers = options.timers || timers;
+    assert(
+        typeof self.timers === 'object' &&
+            typeof self.timers.setTimeout === 'function' &&
+            typeof self.timers.clearTimeout === 'function',
+        'expected options.timers to be object with setTimeout and ' +
+            'clearTimeout functions'
+    );
+
+    self.prefix = options.prefix || '';
+    assert(
+        typeof self.prefix === 'string',
+        'expected options.prefix to be string'
+    );
+
+    if (self.prefix[self.prefix.length - 1] !== '.' && self.prefix !== '') {
+        self.prefix = self.prefix + '.';
+    }
 
     self.handleTimer = null;
     self.requestTimer = null;
     self.memoryTimer = null;
     self.lagTimer = null;
-
-    self.timers = options.timers || timers;
 }
 
 ProcessReporter.prototype.bootstrap = function bootstrap() {
@@ -80,29 +117,32 @@ ProcessReporter.prototype._reportHandle = function _reportHandle() {
     var self = this;
 
     var num = process._getActiveHandles().length;
-    self.statsd.timing('process-reporter.handles', num);
+    self.statsd.timing(self.prefix + 'process-reporter.handles', num);
 };
 
 ProcessReporter.prototype._reportRequest = function _reportRequest() {
     var self = this;
 
     var num = process._getActiveRequests().length;
-    self.statsd.timing('process-reporter.requests', num);
+    self.statsd.timing(self.prefix + 'process-reporter.requests', num);
 };
 
 ProcessReporter.prototype._reportMemory = function _reportMemory() {
     var self = this;
 
     var usage = process.memoryUsage();
-    var prefix = 'process-reporter.memory-usage';
+    var memPrefix = self.prefix + 'process-reporter.memory-usage';
 
-    self.statsd.gauge(prefix + '.rss', usage.rss);
-    self.statsd.gauge(prefix + '.heap-used', usage.heapUsed);
-    self.statsd.gauge(prefix + '.heap-total', usage.heapTotal);
+    self.statsd.gauge(memPrefix + '.rss', usage.rss);
+    self.statsd.gauge(memPrefix + '.heap-used', usage.heapUsed);
+    self.statsd.gauge(memPrefix + '.heap-total', usage.heapTotal);
 };
 
 ProcessReporter.prototype._reportLag = function _reportLag() {
     var self = this;
 
-    self.statsd.timing('process-reporter.lag-sampler', toobusy.lag());
+    self.statsd.timing(
+        self.prefix + 'process-reporter.lag-sampler',
+        toobusy.lag()
+    );
 };
