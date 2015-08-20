@@ -87,7 +87,7 @@ ProcessReporter.prototype.bootstrap = function bootstrap() {
     function onRequest() {
         self._reportRequest();
         self.requestTimer =
-            self.timers.setTimeout(onHandle, self.handleInterval);
+            self.timers.setTimeout(onRequest, self.requestInterval);
     }
 
     function onMemory() {
