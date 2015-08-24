@@ -130,12 +130,24 @@ ProcessReporter.prototype._reportRequest = function _reportRequest() {
 ProcessReporter.prototype._reportMemory = function _reportMemory() {
     var self = this;
 
-    var usage = process.memoryUsage();
+    var usage = self._memoryUsage();
+    // Evidently, process.memoryUsage() may throw EMFILE.
+    if (!usage) {
+        return;
+    }
     var memPrefix = self.prefix + 'process-reporter.memory-usage';
 
     self.statsd.gauge(memPrefix + '.rss', usage.rss);
     self.statsd.gauge(memPrefix + '.heap-used', usage.heapUsed);
     self.statsd.gauge(memPrefix + '.heap-total', usage.heapTotal);
+};
+
+ProcessReporter.prototype._memoryUsage = function _memoryUsage() {
+    try {
+        return process.memoryUsage();
+    } catch (err) {
+        return null;
+    }
 };
 
 ProcessReporter.prototype._reportLag = function _reportLag() {
