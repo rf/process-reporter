@@ -2,8 +2,8 @@
 
 var timers = require('timers');
 var process = require('process');
-var toobusy = require('toobusy');
 var assert = require('assert');
+var _toobusy;
 
 module.exports = ProcessReporter;
 
@@ -72,6 +72,10 @@ function ProcessReporter(options) {
 ProcessReporter.prototype.bootstrap = function bootstrap() {
     var self = this;
 
+    if (!_toobusy) {
+        _toobusy = require('toobusy');
+    }
+
     self.handleTimer = self.timers.setTimeout(onHandle, self.handleInterval);
     self.requestTimer =
         self.timers.setTimeout(onRequest, self.requestInterval);
@@ -110,7 +114,7 @@ ProcessReporter.prototype.destroy = function destroy() {
     self.timers.clearTimeout(self.memoryTimer);
     self.timers.clearTimeout(self.lagTimer);
 
-    toobusy.shutdown();
+    _toobusy.shutdown();
 };
 
 ProcessReporter.prototype._reportHandle = function _reportHandle() {
@@ -155,6 +159,6 @@ ProcessReporter.prototype._reportLag = function _reportLag() {
 
     self.statsd.timing(
         self.prefix + 'process-reporter.lag-sampler',
-        toobusy.lag()
+        _toobusy.lag()
     );
 };
