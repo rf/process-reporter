@@ -69,6 +69,11 @@ function ProcessReporter(options) {
     self.memoryTimer = null;
     self.lagTimer = null;
     self.gcStats = null;
+    self._onStatsListener = onStats;
+
+    function onStats(gcInfo) {
+        self._reportGCStats(gcInfo);
+    }
 }
 
 ProcessReporter.prototype.bootstrap = function bootstrap() {
@@ -89,7 +94,7 @@ ProcessReporter.prototype.bootstrap = function bootstrap() {
     self.lagTimer = self.timers.setTimeout(onLag, self.lagInterval);
 
     self.gcStats = new _gcstats();
-    self.gcStats.on('stats', onStats);
+    self.gcStats.on('stats', self._onStatsListener);
 
     function onHandle() {
         self._reportHandle();
@@ -113,10 +118,6 @@ ProcessReporter.prototype.bootstrap = function bootstrap() {
         self._reportLag();
         self.lagTimer = self.timers.setTimeout(onLag, self.lagInterval);
     }
-
-    function onStats(gcInfo) {
-        self._reportGCStats(gcInfo);
-    }
 };
 
 ProcessReporter.prototype.destroy = function destroy() {
@@ -128,6 +129,7 @@ ProcessReporter.prototype.destroy = function destroy() {
     self.timers.clearTimeout(self.lagTimer);
 
     _toobusy.shutdown();
+    self.gcStats.removeListener('stats', self._onStatsListener);
 };
 
 ProcessReporter.prototype._reportHandle = function _reportHandle() {
