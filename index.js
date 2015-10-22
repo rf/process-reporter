@@ -115,7 +115,6 @@ ProcessReporter.prototype.bootstrap = function bootstrap() {
     }
 
     function onStats(gcInfo) {
-        console.log('!!!!!!!!!!!!1lul', gcInfo);
         self._reportGCStats(gcInfo);
     }
 };
