@@ -3,6 +3,7 @@
 var timers = require('timers');
 var process = require('process');
 var assert = require('assert');
+var _gcstats;
 var _toobusy;
 
 module.exports = ProcessReporter;
@@ -67,6 +68,7 @@ function ProcessReporter(options) {
     self.requestTimer = null;
     self.memoryTimer = null;
     self.lagTimer = null;
+    self.gcStats = null;
 }
 
 ProcessReporter.prototype.bootstrap = function bootstrap() {
@@ -76,11 +78,18 @@ ProcessReporter.prototype.bootstrap = function bootstrap() {
         _toobusy = require('toobusy');
     }
 
+    if (!_gcstats) {
+        _gcstats = require('gc-stats');
+    }
+
     self.handleTimer = self.timers.setTimeout(onHandle, self.handleInterval);
     self.requestTimer =
         self.timers.setTimeout(onRequest, self.requestInterval);
     self.memoryTimer = self.timers.setTimeout(onMemory, self.memoryInterval);
     self.lagTimer = self.timers.setTimeout(onLag, self.lagInterval);
+
+    self.gcStats = new _gcstats();
+    self.gcStats.on('stats', onStats);
 
     function onHandle() {
         self._reportHandle();
@@ -103,6 +112,11 @@ ProcessReporter.prototype.bootstrap = function bootstrap() {
     function onLag() {
         self._reportLag();
         self.lagTimer = self.timers.setTimeout(onLag, self.lagInterval);
+    }
+
+    function onStats(gcInfo) {
+        console.log('!!!!!!!!!!!!1lul', gcInfo);
+        self._reportGCStats(gcInfo);
     }
 };
 
@@ -162,3 +176,36 @@ ProcessReporter.prototype._reportLag = function _reportLag() {
         _toobusy.lag()
     );
 };
+
+ProcessReporter.prototype._reportGCStats = function _reportGCStats(gcInfo) {
+    var self = this;
+
+    var prefix = self.prefix + 'process-reporter.gc.' + formatGCType(gcInfo);
+
+    self.statsd.timing(prefix + '.pause-ms', gcInfo.pauseMS);
+    self.statsd.gauge(prefix + '.heap-used', gcInfo.diff.usedHeapSize);
+    self.statsd.gauge(prefix + '.heap-total', gcInfo.diff.totalHeapSize);
+};
+
+function formatGCType(gcInfo) {
+    var type;
+    switch (gcInfo.gctype) {
+        case 1:
+            type = 'minor';
+            break;
+
+        case 2:
+            type = 'major';
+            break;
+
+        case 3:
+            type = 'both';
+            break;
+
+        default:
+            type = 'unknown';
+            break;
+    }
+
+    return type;
+}
