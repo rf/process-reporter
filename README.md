@@ -21,7 +21,7 @@ It currently reports these stats:
 * **yourapp.process-reporter.memory-usage.heap-used** amt of v8 heap used
 * **yourapp.process-reporter.lag-sampler** event loop lag
 * **yourapp.process-reporter.gc.{gc-type}.pause-ms** length of GC pauses
-* **yourapp.process-reporter.gc.{gc-type}.heap-used** amount of bytes GCd
-* **yourapp.process-reporter.gc.{gc-type}.heap-total** changes in heap total
+* **yourapp.process-reporter.gc.{gc-type}.heap-used** +/- amount of bytes GCd
+* **yourapp.process-reporter.gc.{gc-type}.heap-total** +/- changes in heap total
 
 To destroy the reporter just call `processReporter.destroy();`
