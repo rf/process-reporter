@@ -1,10 +1,15 @@
 'use strict';
 
+var path = require('path');
 var timers = require('timers');
 var process = require('process');
 var assert = require('assert');
-var _gcstats;
+var EventEmitter = require('events').EventEmitter;
 var _toobusy;
+var _gcstats;
+
+var _gcEmitter = new EventEmitter();
+_gcEmitter.setMaxListeners(100);
 
 module.exports = ProcessReporter;
 
@@ -68,7 +73,7 @@ function ProcessReporter(options) {
     self.requestTimer = null;
     self.memoryTimer = null;
     self.lagTimer = null;
-    self.gcStats = null;
+
     self._onStatsListener = onStats;
 
     function onStats(gcInfo) {
@@ -84,7 +89,13 @@ ProcessReporter.prototype.bootstrap = function bootstrap() {
     }
 
     if (!_gcstats) {
-        _gcstats = require('gc-stats');
+        /* eslint-disable camelcase */
+        _gcstats = require('bindings')({
+            bindings: 'gcstats',
+            module_root: path.join(__dirname, 'node_modules', 'gc-stats')
+        });
+        /* eslint-enable camelcase */
+        _gcstats.afterGC(onGC);
     }
 
     self.handleTimer = self.timers.setTimeout(onHandle, self.handleInterval);
@@ -93,8 +104,7 @@ ProcessReporter.prototype.bootstrap = function bootstrap() {
     self.memoryTimer = self.timers.setTimeout(onMemory, self.memoryInterval);
     self.lagTimer = self.timers.setTimeout(onLag, self.lagInterval);
 
-    self.gcStats = new _gcstats();
-    self.gcStats.on('stats', self._onStatsListener);
+    _gcEmitter.on('stats', self._onStatsListener);
 
     function onHandle() {
         self._reportHandle();
@@ -129,7 +139,7 @@ ProcessReporter.prototype.destroy = function destroy() {
     self.timers.clearTimeout(self.lagTimer);
 
     _toobusy.shutdown();
-    self.gcStats.removeListener('stats', self._onStatsListener);
+    _gcEmitter.removeListener('stats', self._onStatsListener);
 };
 
 ProcessReporter.prototype._reportHandle = function _reportHandle() {
@@ -209,4 +219,8 @@ function formatGCType(gcInfo) {
     }
 
     return type;
+}
+
+function onGC(gcInfo) {
+    _gcEmitter.emit('stats', gcInfo);
 }

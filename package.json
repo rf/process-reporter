@@ -6,6 +6,7 @@
   "author": "Russ Frank <me@russfrank.us>",
   "license": "MIT",
   "dependencies": {
+    "bindings": "^1.2.1",
     "gc-stats": "0.0.6",
     "process": "^0.11.1",
     "toobusy": "^0.2.4"
