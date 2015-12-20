@@ -197,8 +197,13 @@ ProcessReporter.prototype.destroy = function destroy() {
     self.timers.clearTimeout(self.memoryTimer);
     self.timers.clearTimeout(self.lagTimer);
 
-    _toobusy.shutdown();
-    _gcEmitter.removeListener('stats', self._onStatsListener);
+    if (_toobusy) {
+        _toobusy.shutdown();
+    }
+
+    if (self.gcEnabled) {
+        _gcEmitter.removeListener('stats', self._onStatsListener);
+    }
 };
 
 ProcessReporter.prototype._reportHandle = function _reportHandle() {
