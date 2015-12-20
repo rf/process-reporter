@@ -13,7 +13,8 @@ _gcEmitter.setMaxListeners(100);
 
 module.exports = ProcessReporter;
 
-/*eslint max-statements: [1, 30]*/
+/*eslint max-statements: [1, 35]*/
+/*eslint complexity: [1, 15]*/
 function ProcessReporter(options) {
     if (!(this instanceof ProcessReporter)) {
         return new ProcessReporter(options);
@@ -69,12 +70,32 @@ function ProcessReporter(options) {
         self.prefix = self.prefix + '.';
     }
 
+    self.handleEnabled = typeof options.handleEnabled === 'boolean' ?
+        options.handleEnabled :
+        true;
+    self.requestEnabled = typeof options.requestEnabled === 'boolean' ?
+        options.requestEnabled :
+        true;
+    self.memoryEnabled = typeof options.memoryEnabled === 'boolean' ?
+        options.memoryEnabled :
+        true;
+    self.lagEnabled = typeof options.lagEnabled === 'boolean' ?
+        options.lagEnabled :
+        true;
+    self.gcEnabled = typeof options.gcEnabled === 'boolean' ?
+        options.gcEnabled :
+        true;
+
     self.handleTimer = null;
     self.requestTimer = null;
     self.memoryTimer = null;
     self.lagTimer = null;
 
-    self._onStatsListener = onStats;
+    if (self.gcEnabled) {
+        self._onStatsListener = onStats;
+    } else {
+        self._onStatsListener = null;
+    }
 
     function onStats(gcInfo) {
         self._reportGCStats(gcInfo);
@@ -84,11 +105,11 @@ function ProcessReporter(options) {
 ProcessReporter.prototype.bootstrap = function bootstrap() {
     var self = this;
 
-    if (!_toobusy) {
+    if (!_toobusy && self.lagEnabled) {
         _toobusy = require('toobusy');
     }
 
-    if (!_gcstats) {
+    if (!_gcstats && self.gcEnabled) {
         /* eslint-disable camelcase */
         _gcstats = require('bindings')({
             bindings: 'gcstats',
@@ -98,13 +119,37 @@ ProcessReporter.prototype.bootstrap = function bootstrap() {
         _gcstats.afterGC(onGC);
     }
 
-    self.handleTimer = self.timers.setTimeout(onHandle, self.handleInterval);
-    self.requestTimer =
-        self.timers.setTimeout(onRequest, self.requestInterval);
-    self.memoryTimer = self.timers.setTimeout(onMemory, self.memoryInterval);
-    self.lagTimer = self.timers.setTimeout(onLag, self.lagInterval);
+    if (self.handleEnabled) {
+        self.handleTimer = self.timers.setTimeout(
+            onHandle,
+            self.handleInterval
+        );
+    }
 
-    _gcEmitter.on('stats', self._onStatsListener);
+    if (self.requestEnabled) {
+        self.requestTimer = self.timers.setTimeout(
+            onRequest,
+            self.requestInterval
+        );
+    }
+
+    if (self.memoryEnabled) {
+        self.memoryTimer = self.timers.setTimeout(
+            onMemory,
+            self.memoryInterval
+        );
+    }
+
+    if (self.lagEnabled) {
+        self.lagTimer = self.timers.setTimeout(
+            onLag,
+            self.lagInterval
+        );
+    }
+
+    if (this.gcEnabled) {
+        _gcEmitter.on('stats', self._onStatsListener);
+    }
 
     function onHandle() {
         self._reportHandle();

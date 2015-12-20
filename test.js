@@ -101,3 +101,24 @@ test('processReporter prefix', function t(assert) {
         assert.end();
     }
 });
+
+test('process reporter disable all', function t(assert) {
+    var reporter = processReporter({
+        handleEnabled: false,
+        requestEnabled: false,
+        memoryEnabled: false,
+        lagEnabled: false,
+        gcEnabled: false,
+        statsd: {}
+    });
+    reporter.bootstrap();
+
+    assert.strictEqual(reporter.handleTimer, null);
+    assert.strictEqual(reporter.requestTimer, null);
+    assert.strictEqual(reporter.memoryTimer, null);
+    assert.strictEqual(reporter.lagTimer, null);
+    assert.strictEqual(reporter._onStatsListener, null);
+
+    // Don't teardown, test should exit
+    assert.end();
+});
