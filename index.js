@@ -147,7 +147,7 @@ ProcessReporter.prototype.bootstrap = function bootstrap() {
         );
     }
 
-    if (this.gcEnabled) {
+    if (self.gcEnabled) {
         _gcEmitter.on('stats', self._onStatsListener);
     }
 
