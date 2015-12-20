@@ -13,7 +13,8 @@ _gcEmitter.setMaxListeners(100);
 
 module.exports = ProcessReporter;
 
-/*eslint max-statements: [1, 30]*/
+/*eslint max-statements: [1, 35]*/
+/*eslint complexity: [1, 15]*/
 function ProcessReporter(options) {
     if (!(this instanceof ProcessReporter)) {
         return new ProcessReporter(options);
@@ -69,12 +70,46 @@ function ProcessReporter(options) {
         self.prefix = self.prefix + '.';
     }
 
+    if (typeof options.handleEnabled === 'boolean') {
+        self.handleEnabled = options.handleEnabled;
+    } else {
+        self.handleEnabled = true;
+    }
+
+    if (typeof options.requestEnabled === 'boolean') {
+        self.requestEnabled = options.requestEnabled;
+    } else {
+        self.requestEnabled = true;
+    }
+
+    if (typeof options.memoryEnabled === 'boolean') {
+        self.memoryEnabled = options.memoryEnabled;
+    } else {
+        self.memoryEnabled = true;
+    }
+
+    if (typeof options.lagEnabled === 'boolean') {
+        self.lagEnabled = options.lagEnabled;
+    } else {
+        self.lagEnabled = true;
+    }
+
+    if (typeof options.gcEnabled === 'boolean') {
+        self.gcEnabled = options.gcEnabled;
+    } else {
+        self.gcEnabled = true;
+    }
+
     self.handleTimer = null;
     self.requestTimer = null;
     self.memoryTimer = null;
     self.lagTimer = null;
 
-    self._onStatsListener = onStats;
+    if (self.gcEnabled) {
+        self._onStatsListener = onStats;
+    } else {
+        self._onStatsListener = null;
+    }
 
     function onStats(gcInfo) {
         self._reportGCStats(gcInfo);
@@ -84,11 +119,11 @@ function ProcessReporter(options) {
 ProcessReporter.prototype.bootstrap = function bootstrap() {
     var self = this;
 
-    if (!_toobusy) {
+    if (!_toobusy && self.lagEnabled) {
         _toobusy = require('toobusy');
     }
 
-    if (!_gcstats) {
+    if (!_gcstats && self.gcEnabled) {
         /* eslint-disable camelcase */
         _gcstats = require('bindings')({
             bindings: 'gcstats',
@@ -98,13 +133,37 @@ ProcessReporter.prototype.bootstrap = function bootstrap() {
         _gcstats.afterGC(onGC);
     }
 
-    self.handleTimer = self.timers.setTimeout(onHandle, self.handleInterval);
-    self.requestTimer =
-        self.timers.setTimeout(onRequest, self.requestInterval);
-    self.memoryTimer = self.timers.setTimeout(onMemory, self.memoryInterval);
-    self.lagTimer = self.timers.setTimeout(onLag, self.lagInterval);
+    if (self.handleEnabled) {
+        self.handleTimer = self.timers.setTimeout(
+            onHandle,
+            self.handleInterval
+        );
+    }
 
-    _gcEmitter.on('stats', self._onStatsListener);
+    if (self.requestEnabled) {
+        self.requestTimer = self.timers.setTimeout(
+            onRequest,
+            self.requestInterval
+        );
+    }
+
+    if (self.memoryEnabled) {
+        self.memoryTimer = self.timers.setTimeout(
+            onMemory,
+            self.memoryInterval
+        );
+    }
+
+    if (self.lagEnabled) {
+        self.lagTimer = self.timers.setTimeout(
+            onLag,
+            self.lagInterval
+        );
+    }
+
+    if (self.gcEnabled) {
+        _gcEmitter.on('stats', self._onStatsListener);
+    }
 
     function onHandle() {
         self._reportHandle();
@@ -138,8 +197,13 @@ ProcessReporter.prototype.destroy = function destroy() {
     self.timers.clearTimeout(self.memoryTimer);
     self.timers.clearTimeout(self.lagTimer);
 
-    _toobusy.shutdown();
-    _gcEmitter.removeListener('stats', self._onStatsListener);
+    if (_toobusy) {
+        _toobusy.shutdown();
+    }
+
+    if (self.gcEnabled) {
+        _gcEmitter.removeListener('stats', self._onStatsListener);
+    }
 };
 
 ProcessReporter.prototype._reportHandle = function _reportHandle() {
