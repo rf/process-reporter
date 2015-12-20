@@ -70,21 +70,35 @@ function ProcessReporter(options) {
         self.prefix = self.prefix + '.';
     }
 
-    self.handleEnabled = typeof options.handleEnabled === 'boolean' ?
-        options.handleEnabled :
-        true;
-    self.requestEnabled = typeof options.requestEnabled === 'boolean' ?
-        options.requestEnabled :
-        true;
-    self.memoryEnabled = typeof options.memoryEnabled === 'boolean' ?
-        options.memoryEnabled :
-        true;
-    self.lagEnabled = typeof options.lagEnabled === 'boolean' ?
-        options.lagEnabled :
-        true;
-    self.gcEnabled = typeof options.gcEnabled === 'boolean' ?
-        options.gcEnabled :
-        true;
+    if (typeof options.handleEnabled === 'boolean') {
+        self.handleEnabled = options.handleEnabled;
+    } else {
+        self.handleEnabled = true;
+    }
+
+    if (typeof options.requestEnabled === 'boolean') {
+        self.requestEnabled = options.requestEnabled;
+    } else {
+        self.requestEnabled = true;
+    }
+
+    if (typeof options.memoryEnabled === 'boolean') {
+        self.memoryEnabled = options.memoryEnabled;
+    } else {
+        self.memoryEnabled = true;
+    }
+
+    if (typeof options.lagEnabled === 'boolean') {
+        self.lagEnabled = options.lagEnabled;
+    } else {
+        self.lagEnabled = true;
+    }
+
+    if (typeof options.gcEnabled === 'boolean') {
+        self.gcEnabled = options.gcEnabled;
+    } else {
+        self.gcEnabled = true;
+    }
 
     self.handleTimer = null;
     self.requestTimer = null;
