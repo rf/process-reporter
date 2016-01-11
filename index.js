@@ -2,7 +2,7 @@
 
 var path = require('path');
 var timers = require('timers');
-var process = require('process');
+var process = global.process;
 var assert = require('assert');
 var EventEmitter = require('events').EventEmitter;
 var _toobusy;
@@ -11,125 +11,125 @@ var _gcstats;
 var _gcEmitter = new EventEmitter();
 _gcEmitter.setMaxListeners(100);
 
-module.exports = ProcessReporter;
-
-/*eslint max-statements: [1, 35]*/
-/*eslint complexity: [1, 15]*/
+/*eslint max-statements: [2, 50]*/
+/*eslint complexity: [2, 15]*/
 function ProcessReporter(options) {
-    if (!(this instanceof ProcessReporter)) {
-        return new ProcessReporter(options);
-    }
-
-    var self = this;
-
     assert(typeof options === 'object', 'options required');
 
-    self.statsd = options.statsd;
-    assert(typeof self.statsd === 'object', 'options.statsd required');
+    this.statsd = options.statsd;
+    assert(typeof this.statsd === 'object', 'options.statsd required');
 
-    self.handleInterval = options.handleInterval || 1000;
+    this.handleInterval = options.handleInterval || 1000;
     assert(
-        typeof self.handleInterval === 'number',
+        typeof this.handleInterval === 'number',
         'expected options.handleInterval to be number'
     );
 
-    self.requestInterval = options.requestInterval || 100;
+    this.requestInterval = options.requestInterval || 100;
     assert(
-        typeof self.requestInterval === 'number',
+        typeof this.requestInterval === 'number',
         'expected options.requestInterval to be number'
     );
 
-    self.memoryInterval = options.memoryInterval || 1000;
+    this.memoryInterval = options.memoryInterval || 1000;
     assert(
-        typeof self.memoryInterval === 'number',
+        typeof this.memoryInterval === 'number',
         'expected options.memoryInterval to be number'
     );
 
-    self.lagInterval = options.lagInterval || 500;
+    this.lagInterval = options.lagInterval || 500;
     assert(
-        typeof self.lagInterval === 'number',
+        typeof this.lagInterval === 'number',
         'expected options.lagInterval to be number'
     );
 
-    self.timers = options.timers || timers;
+    this.timers = options.timers || timers;
     assert(
-        typeof self.timers === 'object' &&
-            typeof self.timers.setTimeout === 'function' &&
-            typeof self.timers.clearTimeout === 'function',
+        typeof this.timers === 'object' &&
+            typeof this.timers.setTimeout === 'function' &&
+            typeof this.timers.clearTimeout === 'function',
         'expected options.timers to be object with setTimeout and ' +
             'clearTimeout functions'
     );
 
-    self.prefix = options.prefix || '';
+    this.prefix = options.prefix || '';
     assert(
-        typeof self.prefix === 'string',
+        typeof this.prefix === 'string',
         'expected options.prefix to be string'
     );
 
-    if (self.prefix[self.prefix.length - 1] !== '.' && self.prefix !== '') {
-        self.prefix = self.prefix + '.';
+    if (this.prefix[this.prefix.length - 1] !== '.' && this.prefix !== '') {
+        this.prefix = this.prefix + '.';
     }
 
     if (typeof options.handleEnabled === 'boolean') {
-        self.handleEnabled = options.handleEnabled;
+        this.handleEnabled = options.handleEnabled;
     } else {
-        self.handleEnabled = true;
+        this.handleEnabled = true;
     }
 
     if (typeof options.requestEnabled === 'boolean') {
-        self.requestEnabled = options.requestEnabled;
+        this.requestEnabled = options.requestEnabled;
     } else {
-        self.requestEnabled = true;
+        this.requestEnabled = true;
     }
 
     if (typeof options.memoryEnabled === 'boolean') {
-        self.memoryEnabled = options.memoryEnabled;
+        this.memoryEnabled = options.memoryEnabled;
     } else {
-        self.memoryEnabled = true;
+        this.memoryEnabled = true;
     }
 
     if (typeof options.lagEnabled === 'boolean') {
-        self.lagEnabled = options.lagEnabled;
+        this.lagEnabled = options.lagEnabled;
     } else {
-        self.lagEnabled = true;
+        this.lagEnabled = true;
     }
 
     if (typeof options.gcEnabled === 'boolean') {
-        self.gcEnabled = options.gcEnabled;
+        this.gcEnabled = options.gcEnabled;
     } else {
-        self.gcEnabled = true;
+        this.gcEnabled = true;
     }
 
-    self.handleTimer = null;
-    self.requestTimer = null;
-    self.memoryTimer = null;
-    self.lagTimer = null;
+    this.handleTimer = null;
+    this.requestTimer = null;
+    this.memoryTimer = null;
+    this.lagTimer = null;
+    this._onStatsListener = null;
+
+    this._setupClosure();
+}
+
+ProcessReporter.prototype._setupClosure =
+function _setupClosure() {
+    var self = this;
 
     if (self.gcEnabled) {
         self._onStatsListener = onStats;
-    } else {
-        self._onStatsListener = null;
     }
 
     function onStats(gcInfo) {
         self._reportGCStats(gcInfo);
     }
-}
+};
 
 ProcessReporter.prototype.bootstrap = function bootstrap() {
     var self = this;
 
     if (!_toobusy && self.lagEnabled) {
+        /*eslint-disable global-require*/
         _toobusy = require('toobusy');
+        /*eslint-enable global-require*/
     }
 
     if (!_gcstats && self.gcEnabled) {
-        /* eslint-disable camelcase */
+        /*eslint-disable camelcase, global-require */
         _gcstats = require('bindings')({
             bindings: 'gcstats',
             module_root: path.join(__dirname, 'node_modules', 'gc-stats')
         });
-        /* eslint-enable camelcase */
+        /*eslint-enable global-require, camelcase*/
         _gcstats.afterGC(onGC);
     }
 
@@ -236,11 +236,13 @@ ProcessReporter.prototype._reportMemory = function _reportMemory() {
 };
 
 ProcessReporter.prototype._memoryUsage = function _memoryUsage() {
+    /*eslint-disable no-restricted-syntax*/
     try {
         return process.memoryUsage();
     } catch (err) {
         return null;
     }
+    /*eslint-enable no-restricted-syntax*/
 };
 
 ProcessReporter.prototype._reportLag = function _reportLag() {
@@ -261,6 +263,12 @@ ProcessReporter.prototype._reportGCStats = function _reportGCStats(gcInfo) {
     self.statsd.gauge(prefix + '.heap-used', gcInfo.diff.usedHeapSize);
     self.statsd.gauge(prefix + '.heap-total', gcInfo.diff.totalHeapSize);
 };
+
+module.exports = createProcessReporter;
+
+function createProcessReporter(options) {
+    return new ProcessReporter(options);
+}
 
 function formatGCType(gcInfo) {
     var type;
