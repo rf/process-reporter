@@ -7,7 +7,7 @@
   "license": "MIT",
   "dependencies": {
     "bindings": "1.2.1",
-    "gc-stats": "0.0.6",
+    "gc-stats": "1.0.0",
     "toobusy": "0.2.4"
   },
   "devDependencies": {
@@ -17,7 +17,8 @@
     "format-stack": "4.1.1",
     "istanbul": "^0.3.15",
     "opn": "3.0.3",
-    "tape": "4.2.2"
+    "tape": "4.2.2",
+    "uber-statsd-client": "1.7.0"
   },
   "scripts": {
     "check-cover": "istanbul check-coverage || echo coverage failed",

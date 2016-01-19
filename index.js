@@ -125,10 +125,7 @@ ProcessReporter.prototype.bootstrap = function bootstrap() {
 
     if (!_gcstats && self.gcEnabled) {
         /*eslint-disable camelcase, global-require */
-        _gcstats = require('bindings')({
-            bindings: 'gcstats',
-            module_root: path.join(__dirname, 'node_modules', 'gc-stats')
-        });
+        _gcstats = require('gc-stats/binding');
         /*eslint-enable global-require, camelcase*/
         _gcstats.afterGC(onGC);
     }
