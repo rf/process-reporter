@@ -1,6 +1,6 @@
 {
   "name": "process-reporter",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "process reporter",
   "main": "index.js",
   "author": "Russ Frank <me@russfrank.us>",
