@@ -1,6 +1,5 @@
 'use strict';
 
-var path = require('path');
 var timers = require('timers');
 var process = global.process;
 var assert = require('assert');
