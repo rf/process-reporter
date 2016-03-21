@@ -18,6 +18,8 @@ function ProcessReporter(options) {
     this.statsd = options.statsd;
     assert(typeof this.statsd === 'object', 'options.statsd required');
 
+    this.globalStatsd = options.globalStatsd;
+
     this.handleInterval = options.handleInterval || 1000;
     assert(
         typeof this.handleInterval === 'number',
@@ -244,10 +246,18 @@ ProcessReporter.prototype._memoryUsage = function _memoryUsage() {
 ProcessReporter.prototype._reportLag = function _reportLag() {
     var self = this;
 
+    var lagTime = _toobusy.lag();
     self.statsd.timing(
         self.prefix + 'process-reporter.lag-sampler',
-        _toobusy.lag()
+        lagTime
     );
+
+    if (self.globalStatsd) {
+        self.globalStatsd.timing(
+            self.prefix + 'process-reporter.lag-sampler',
+            lagTime
+        );
+    }
 };
 
 ProcessReporter.prototype._reportGCStats = function _reportGCStats(gcInfo) {
@@ -258,6 +268,10 @@ ProcessReporter.prototype._reportGCStats = function _reportGCStats(gcInfo) {
     self.statsd.timing(prefix + '.pause-ms', gcInfo.pauseMS);
     self.statsd.gauge(prefix + '.heap-used', gcInfo.diff.usedHeapSize);
     self.statsd.gauge(prefix + '.heap-total', gcInfo.diff.totalHeapSize);
+
+    if (self.globalStatsd) {
+        self.globalStatsd.timing(prefix + '.pause-ms', gcInfo.pauseMS);
+    }
 };
 
 module.exports = createProcessReporter;
