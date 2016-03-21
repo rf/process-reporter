@@ -25,3 +25,15 @@ It currently reports these stats:
 * **yourapp.process-reporter.gc.{gc-type}.heap-total** +/- changes in heap total
 
 To destroy the reporter just call `processReporter.destroy();`
+
+## Docs
+
+The ProcessReporter constructor takes an options dictionary:
+
+ - `options.statsd`, a per-worker statsd to write per-worker stats to
+ - `options.globalStatsd`, a cluster-wide statsd to write cluster-wide stats to
+
+You can pass in an optional `globalStatsd` that will be used to emit
+**lag-sampler** and **gc.{gc-type}.pause-ms** stats that are cluster wide
+so that your statsd aggregation can calculate more accurate P99s
+
