@@ -119,7 +119,7 @@ ProcessReporter.prototype.bootstrap = function bootstrap() {
 
     if (!_toobusy && self.lagEnabled) {
         /*eslint-disable global-require*/
-        _toobusy = require('toobusy');
+        _toobusy = require('toobusy-js');
         /*eslint-enable global-require*/
     }
 
