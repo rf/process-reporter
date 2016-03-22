@@ -6,23 +6,7 @@ var setTimeout = require('timers').setTimeout;
 var processReporter = require('./index');
 
 test('processReporter reports libuv health', function t(assert) {
-    var fakeStatsd = {
-        records: [],
-        timing: function timing(key, value) {
-            this.records.push({
-                key: key,
-                value: value,
-                type: 'timing'
-            });
-        },
-        gauge: function gauge(key, value) {
-            this.records.push({
-                key: key,
-                value: value,
-                type: 'gauge'
-            });
-        }
-    };
+    var fakeStatsd = createFakeStatsd();
 
     var reporter = processReporter({
         handleInterval: 10,
@@ -47,10 +31,42 @@ test('processReporter reports libuv health', function t(assert) {
         assert.equal(typeof handles.value, 'number');
         assert.equal(typeof requests.value, 'number');
 
+        assert.end();
+    }
+});
+
+test('processReport global stats', function t(assert) {
+    var workerStatsd = createFakeStatsd();
+    var clusterStatsd = createFakeStatsd();
+
+    var reporter = processReporter({
+        statsd: workerStatsd,
+        clusterStatsd: clusterStatsd,
+        lagInterval: 10
+    });
+    reporter.bootstrap();
+
+    setTimeout(onReported, 15);
+
+    function onReported() {
         reporter.destroy();
+
+        var workerRecords = workerStatsd.records;
+        var clusterRecords = clusterStatsd.records;
+
+        assert.equal(workerRecords.length, 1);
+        assert.equal(clusterRecords.length, 1);
+
+        assert.equal(workerRecords[0].key, 'process-reporter.lag-sampler');
+        assert.equal(clusterRecords[0].key, 'process-reporter.lag-sampler');
+        assert.equal(typeof workerRecords[0].value, 'number');
+        assert.equal(typeof clusterRecords[0].value, 'number');
+        assert.equal(workerRecords[0].type, 'timing');
+        assert.equal(clusterRecords[0].type, 'timing');
 
         assert.end();
     }
+
 });
 
 test('processReporter prefix', function t(assert) {
@@ -144,3 +160,23 @@ test('process reporter disable all safely shuts down', function t(assert) {
 
     assert.end();
 });
+
+function createFakeStatsd() {
+    return {
+        records: [],
+        timing: function timing(key, value) {
+            this.records.push({
+                key: key,
+                value: value,
+                type: 'timing'
+            });
+        },
+        gauge: function gauge(key, value) {
+            this.records.push({
+                key: key,
+                value: value,
+                type: 'gauge'
+            });
+        }
+    };
+}
