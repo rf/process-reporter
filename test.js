@@ -37,11 +37,11 @@ test('processReporter reports libuv health', function t(assert) {
 
 test('processReport global stats', function t(assert) {
     var workerStatsd = createFakeStatsd();
-    var globalStatsd = createFakeStatsd();
+    var clusterStatsd = createFakeStatsd();
 
     var reporter = processReporter({
         statsd: workerStatsd,
-        globalStatsd: globalStatsd,
+        clusterStatsd: clusterStatsd,
         lagInterval: 10
     });
     reporter.bootstrap();
@@ -52,17 +52,17 @@ test('processReport global stats', function t(assert) {
         reporter.destroy();
 
         var workerRecords = workerStatsd.records;
-        var globalRecords = globalStatsd.records;
+        var clusterRecords = clusterStatsd.records;
 
         assert.equal(workerRecords.length, 1);
-        assert.equal(globalRecords.length, 1);
+        assert.equal(clusterRecords.length, 1);
 
         assert.equal(workerRecords[0].key, 'process-reporter.lag-sampler');
-        assert.equal(globalRecords[0].key, 'process-reporter.lag-sampler');
+        assert.equal(clusterRecords[0].key, 'process-reporter.lag-sampler');
         assert.equal(typeof workerRecords[0].value, 'number');
-        assert.equal(typeof globalRecords[0].value, 'number');
+        assert.equal(typeof clusterRecords[0].value, 'number');
         assert.equal(workerRecords[0].type, 'timing');
-        assert.equal(globalRecords[0].type, 'timing');
+        assert.equal(clusterRecords[0].type, 'timing');
 
         assert.end();
     }

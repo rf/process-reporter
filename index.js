@@ -18,7 +18,7 @@ function ProcessReporter(options) {
     this.statsd = options.statsd;
     assert(typeof this.statsd === 'object', 'options.statsd required');
 
-    this.globalStatsd = options.globalStatsd;
+    this.clusterStatsd = options.clusterStatsd;
 
     this.handleInterval = options.handleInterval || 1000;
     assert(
@@ -252,8 +252,8 @@ ProcessReporter.prototype._reportLag = function _reportLag() {
         lagTime
     );
 
-    if (self.globalStatsd) {
-        self.globalStatsd.timing(
+    if (self.clusterStatsd) {
+        self.clusterStatsd.timing(
             self.prefix + 'process-reporter.lag-sampler',
             lagTime
         );
@@ -269,8 +269,8 @@ ProcessReporter.prototype._reportGCStats = function _reportGCStats(gcInfo) {
     self.statsd.gauge(prefix + '.heap-used', gcInfo.diff.usedHeapSize);
     self.statsd.gauge(prefix + '.heap-total', gcInfo.diff.totalHeapSize);
 
-    if (self.globalStatsd) {
-        self.globalStatsd.timing(prefix + '.pause-ms', gcInfo.pauseMS);
+    if (self.clusterStatsd) {
+        self.clusterStatsd.timing(prefix + '.pause-ms', gcInfo.pauseMS);
     }
 };
 
