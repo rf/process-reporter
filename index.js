@@ -221,8 +221,8 @@ ProcessReporter.prototype._reportRequest = function _reportRequest() {
     self.statsd.timing(self.prefix + 'process-reporter.requests', num);
 };
 
-ProcessReporter.prototype.getCachedMemoryUsage = function
-    getCachedMemoryUsage() {
+ProcessReporter.prototype.getCachedMemoryUsage =
+function getCachedMemoryUsage() {
     return this.cachedMemoryUsage;
 };
 
