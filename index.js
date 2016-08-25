@@ -99,6 +99,9 @@ function ProcessReporter(options) {
     this.lagTimer = null;
     this._onStatsListener = null;
 
+    this.cachedMemoryUsage = null;
+    this.cachedLagTime = null;
+
     this._setupClosure();
 }
 
@@ -218,6 +221,11 @@ ProcessReporter.prototype._reportRequest = function _reportRequest() {
     self.statsd.timing(self.prefix + 'process-reporter.requests', num);
 };
 
+ProcessReporter.prototype.getCachedMemoryUsage = function
+    getCachedMemoryUsage() {
+    return this.cachedMemoryUsage;
+};
+
 ProcessReporter.prototype._reportMemory = function _reportMemory() {
     var self = this;
 
@@ -231,6 +239,8 @@ ProcessReporter.prototype._reportMemory = function _reportMemory() {
     self.statsd.gauge(memPrefix + '.rss', usage.rss);
     self.statsd.gauge(memPrefix + '.heap-used', usage.heapUsed);
     self.statsd.gauge(memPrefix + '.heap-total', usage.heapTotal);
+
+    self.cachedMemoryUsage = usage;
 };
 
 ProcessReporter.prototype._memoryUsage = function _memoryUsage() {
@@ -241,6 +251,10 @@ ProcessReporter.prototype._memoryUsage = function _memoryUsage() {
         return null;
     }
     /*eslint-enable no-restricted-syntax*/
+};
+
+ProcessReporter.prototype.getCachedLagTime = function getCachedLagTime() {
+    return this.cachedLagTime;
 };
 
 ProcessReporter.prototype._reportLag = function _reportLag() {
@@ -258,6 +272,8 @@ ProcessReporter.prototype._reportLag = function _reportLag() {
             lagTime
         );
     }
+
+    self.cachedLagTime = lagTime;
 };
 
 ProcessReporter.prototype._reportGCStats = function _reportGCStats(gcInfo) {

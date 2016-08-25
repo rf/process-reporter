@@ -69,6 +69,28 @@ test('processReport global stats', function t(assert) {
 
 });
 
+test('processReporter caches memory usage and lag time', function t(assert) {
+    var workerStatsd = createFakeStatsd();
+    var clusterStatsd = createFakeStatsd();
+
+    var reporter = processReporter({
+        statsd: workerStatsd,
+        clusterStatsd: clusterStatsd,
+        lagInterval: 10,
+        memoryInterval: 10
+    });
+    reporter.bootstrap();
+
+    setTimeout(onReported, 15);
+
+    function onReported() {
+        assert.notEqual(reporter.getCachedLagTime(), null);
+        assert.notEqual(reporter.getCachedMemoryUsage(), null);
+        reporter.destroy();
+        assert.end();
+    }
+});
+
 test('processReporter prefix', function t(assert) {
     var fakeStatsd = {
         records: [],
