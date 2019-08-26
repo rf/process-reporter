@@ -64,10 +64,26 @@ _gcEmitter.setMaxListeners(100);
 function ProcessReporter(options) {
     assert(typeof options === 'object', 'options required');
 
-    this.statsd = options.statsd;
-    assert(typeof this.statsd === 'object', 'options.statsd required');
+    if (options.reporter) {
+        this.repoter = options.reporter;
+    } else {
+        var statsd = options.statsd;
+        assert(typeof statsd === 'object', 'options.statsd required');
 
-    this.clusterStatsd = options.clusterStatsd;
+        var clusterStatsd = options.clusterStatsd;
+
+        var prefix = options.prefix || '';
+        assert(
+            typeof prefix === 'string',
+            'expected options.prefix to be string'
+        );
+
+        if (prefix[prefix.length - 1] !== '.' && prefix !== '') {
+            prefix = prefix + '.';
+        }
+
+        this.reporter = new StatsdReporter(statsd, clusterStatsd, prefix);
+    }
 
     this.handleInterval = options.handleInterval || 1000;
     assert(
@@ -102,16 +118,6 @@ function ProcessReporter(options) {
             'clearTimeout functions'
     );
 
-    this.prefix = options.prefix || '';
-    assert(
-        typeof this.prefix === 'string',
-        'expected options.prefix to be string'
-    );
-
-    if (this.prefix[this.prefix.length - 1] !== '.' && this.prefix !== '') {
-        this.prefix = this.prefix + '.';
-    }
-
     if (typeof options.handleEnabled === 'boolean') {
         this.handleEnabled = options.handleEnabled;
     } else {
@@ -142,9 +148,6 @@ function ProcessReporter(options) {
         this.gcEnabled = true;
     }
 
-    this.reporter = new StatsdReporter(
-        this.statsd, this.clusterStatsd, this.prefix
-    );
     this.handleTimer = null;
     this.requestTimer = null;
     this.memoryTimer = null;
