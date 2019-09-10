@@ -7,6 +7,55 @@ var EventEmitter = require('events').EventEmitter;
 var _toobusy;
 var _gcstats;
 
+function StatsdReporter(statsd, clusterStatsd, prefix) {
+    this.statsd = statsd;
+    this.clusterStatsd = clusterStatsd;
+    this.prefix = prefix;
+}
+
+StatsdReporter.prototype.reportHandles =
+function _reportHandles(num) {
+    this.statsd.timing(this.prefix + 'process-reporter.handles', num);
+};
+
+StatsdReporter.prototype.reportRequests =
+function _reportRequests(num) {
+    this.statsd.timing(this.prefix + 'process-reporter.requests', num);
+};
+
+StatsdReporter.prototype.reportMemoryUsage =
+function _reportMemoryUsage(usage) {
+    var memPrefix = this.prefix + 'process-reporter.memory-usage';
+
+    this.statsd.gauge(memPrefix + '.rss', usage.rss);
+    this.statsd.gauge(memPrefix + '.heap-used', usage.heapUsed);
+    this.statsd.gauge(memPrefix + '.heap-total', usage.heapTotal);
+};
+
+StatsdReporter.prototype.reportLag =
+function _reportLag(lagTime) {
+    this.statsd.timing(this.prefix + 'process-reporter.lag-sampler', lagTime);
+
+    if (this.clusterStatsd) {
+        this.clusterStatsd.timing(
+            this.prefix + 'process-reporter.lag-sampler', lagTime
+        );
+    }
+};
+
+StatsdReporter.prototype.reportGC =
+function _reportGC(gcType, gcInfo) {
+    var prefix = this.prefix + 'process-reporter.gc.' + gcType;
+
+    this.statsd.timing(prefix + '.pause-ms', gcInfo.pauseMS);
+    this.statsd.gauge(prefix + '.heap-used', gcInfo.diff.usedHeapSize);
+    this.statsd.gauge(prefix + '.heap-total', gcInfo.diff.totalHeapSize);
+
+    if (this.clusterStatsd) {
+        this.clusterStatsd.timing(prefix + '.pause-ms', gcInfo.pauseMS);
+    }
+};
+
 var _gcEmitter = new EventEmitter();
 _gcEmitter.setMaxListeners(100);
 
@@ -15,10 +64,26 @@ _gcEmitter.setMaxListeners(100);
 function ProcessReporter(options) {
     assert(typeof options === 'object', 'options required');
 
-    this.statsd = options.statsd;
-    assert(typeof this.statsd === 'object', 'options.statsd required');
+    if (options.reporter) {
+        this.repoter = options.reporter;
+    } else {
+        var statsd = options.statsd;
+        assert(typeof statsd === 'object', 'options.statsd required');
 
-    this.clusterStatsd = options.clusterStatsd;
+        var clusterStatsd = options.clusterStatsd;
+
+        var prefix = options.prefix || '';
+        assert(
+            typeof prefix === 'string',
+            'expected options.prefix to be string'
+        );
+
+        if (prefix[prefix.length - 1] !== '.' && prefix !== '') {
+            prefix = prefix + '.';
+        }
+
+        this.reporter = new StatsdReporter(statsd, clusterStatsd, prefix);
+    }
 
     this.handleInterval = options.handleInterval || 1000;
     assert(
@@ -52,16 +117,6 @@ function ProcessReporter(options) {
         'expected options.timers to be object with setTimeout and ' +
             'clearTimeout functions'
     );
-
-    this.prefix = options.prefix || '';
-    assert(
-        typeof this.prefix === 'string',
-        'expected options.prefix to be string'
-    );
-
-    if (this.prefix[this.prefix.length - 1] !== '.' && this.prefix !== '') {
-        this.prefix = this.prefix + '.';
-    }
 
     if (typeof options.handleEnabled === 'boolean') {
         this.handleEnabled = options.handleEnabled;
@@ -211,14 +266,14 @@ ProcessReporter.prototype._reportHandle = function _reportHandle() {
     var self = this;
 
     var num = process._getActiveHandles().length;
-    self.statsd.timing(self.prefix + 'process-reporter.handles', num);
+    self.reporter.reportHandles(num);
 };
 
 ProcessReporter.prototype._reportRequest = function _reportRequest() {
     var self = this;
 
     var num = process._getActiveRequests().length;
-    self.statsd.timing(self.prefix + 'process-reporter.requests', num);
+    self.reporter.reportRequests(num);
 };
 
 ProcessReporter.prototype.getCachedMemoryUsage =
@@ -234,11 +289,7 @@ ProcessReporter.prototype._reportMemory = function _reportMemory() {
     if (!usage) {
         return;
     }
-    var memPrefix = self.prefix + 'process-reporter.memory-usage';
-
-    self.statsd.gauge(memPrefix + '.rss', usage.rss);
-    self.statsd.gauge(memPrefix + '.heap-used', usage.heapUsed);
-    self.statsd.gauge(memPrefix + '.heap-total', usage.heapTotal);
+    self.reporter.reportMemoryUsage(usage);
 
     self.cachedMemoryUsage = usage;
 };
@@ -261,17 +312,7 @@ ProcessReporter.prototype._reportLag = function _reportLag() {
     var self = this;
 
     var lagTime = _toobusy.lag();
-    self.statsd.timing(
-        self.prefix + 'process-reporter.lag-sampler',
-        lagTime
-    );
-
-    if (self.clusterStatsd) {
-        self.clusterStatsd.timing(
-            self.prefix + 'process-reporter.lag-sampler',
-            lagTime
-        );
-    }
+    self.reporter.reportLag(lagTime);
 
     self.cachedLagTime = lagTime;
 };
@@ -279,15 +320,8 @@ ProcessReporter.prototype._reportLag = function _reportLag() {
 ProcessReporter.prototype._reportGCStats = function _reportGCStats(gcInfo) {
     var self = this;
 
-    var prefix = self.prefix + 'process-reporter.gc.' + formatGCType(gcInfo);
-
-    self.statsd.timing(prefix + '.pause-ms', gcInfo.pauseMS);
-    self.statsd.gauge(prefix + '.heap-used', gcInfo.diff.usedHeapSize);
-    self.statsd.gauge(prefix + '.heap-total', gcInfo.diff.totalHeapSize);
-
-    if (self.clusterStatsd) {
-        self.clusterStatsd.timing(prefix + '.pause-ms', gcInfo.pauseMS);
-    }
+    var gcType = formatGCType(gcInfo);
+    self.reporter.reportGC(gcType, gcInfo);
 };
 
 module.exports = createProcessReporter;
