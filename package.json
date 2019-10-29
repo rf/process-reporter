@@ -10,7 +10,7 @@
     "toobusy-js": "0.4.3"
   },
   "devDependencies": {
-    "eslint": "1.8.0",
+    "eslint": "6.6.0",
     "eslint-config-perf-standard": "2.1.0",
     "eslint-plugin-perf-standard": "1.0.2",
     "format-stack": "4.1.1",
